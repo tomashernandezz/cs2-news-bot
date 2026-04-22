@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS2 News</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #1a1a1f;
+    color: #e8e8ec;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── top bar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #111114;
+    border-bottom: 1px solid #2a2a35;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-logo {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #f97316, #facc15);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .topbar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    color: #f1f1f3;
+  }
+  .topbar-sub {
+    font-size: 12px;
+    color: #888;
+    margin-left: 4px;
+  }
+  .btn-refresh {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    background: #2a2a38;
+    border: 1px solid #3a3a50;
+    border-radius: 8px;
+    color: #c8c8d8;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .btn-refresh:hover { background: #333345; border-color: #5555aa; }
+  .btn-refresh.spinning .icon { animation: spin .7s linear infinite; }
+  .btn-refresh .icon { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── widget container ── */
+  .widget {
+    max-width: 860px;
+    margin: 24px auto;
+    padding: 0 16px 40px;
+  }
+
+  /* ── section label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 12px;
+  }
+
+  /* ── source color map ── */
+  /* applied via data-source attribute */
+  .thumb[data-source="Steam"]              { background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%); }
+  .thumb[data-source="Steam API"]          { background: linear-gradient(135deg, #0d4f8c 0%, #1b6fba 100%); }
+  .thumb[data-source="r/cs2"]             { background: linear-gradient(135deg, #8b1a00 0%, #d43800 100%); }
+  .thumb[data-source="r/GlobalOffensive"] { background: linear-gradient(135deg, #7a3200 0%, #c85000 100%); }
+  .thumb { background: linear-gradient(135deg, #2a2a40 0%, #3a3a55 100%); } /* fallback */
+
+  /* ── hero card ── */
+  .hero {
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    cursor: pointer;
+    position: relative;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    transition: transform .2s;
+  }
+  .hero:hover { transform: translateY(-2px); }
+  .hero .thumb {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero .thumb-icon { font-size: 72px; opacity: .15; user-select: none; }
+  .hero-gradient {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.88) 40%, rgba(0,0,0,.1) 100%);
+  }
+  .hero-body {
+    position: relative;
+    padding: 22px 22px 20px;
+  }
+  .hero-source-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(4px);
+    color: #ddd;
+  }
+  .badge.steam     { background: rgba(27,40,56,.8);  color: #7ab8e8; }
+  .badge.steam-api { background: rgba(13,79,140,.7); color: #8dcff5; }
+  .badge.cs2       { background: rgba(212,56,0,.7);  color: #ffb89a; }
+  .badge.go        { background: rgba(200,80,0,.7);  color: #ffcba0; }
+
+  .hero-time { font-size: 11px; color: #aaa; }
+  .hero-title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #f5f5f7;
+  }
+
+  /* ── grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── news card ── */
+  .card {
+    background: #1e1e28;
+    border: 1px solid #2c2c3c;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: #44445a;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  .card .thumb {
+    height: 90px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card .thumb-icon { font-size: 32px; opacity: .22; user-select: none; }
+  .card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .card-meta { display: flex; align-items: center; gap: 6px; }
+  .card-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #e2e2e8;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-time { font-size: 11px; color: #666; margin-top: auto; }
+
+  /* ── loading / empty ── */
+  .state-msg {
+    text-align: center;
+    padding: 60px 20px;
+    color: #555;
+    font-size: 14px;
+  }
+  .state-msg .big { font-size: 36px; margin-bottom: 12px; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #333;
+    border-top-color: #7878cc;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 14px;
+  }
+
+  .last-updated { font-size: 11px; color: #555; margin-top: 18px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">🎯</div>
+    <h1>CS2 News <span class="topbar-sub">· local</span></h1>
+  </div>
+  <button class="btn-refresh" id="btnRefresh">
+    <span class="icon">↻</span> Actualizar
+  </button>
+</div>
+
+<div class="widget">
+  <div id="content">
+    <div class="state-msg"><div class="spinner"></div>Cargando noticias…</div>
+  </div>
+  <div class="last-updated" id="lastUpdated"></div>
+</div>
+
+<script>
+  const SOURCE_ICON  = { 'Steam': '🎮', 'Steam API': '⚙️', 'r/cs2': '🔫', 'r/GlobalOffensive': '🌍' };
+  const SOURCE_CLASS = { 'Steam': 'steam', 'Steam API': 'steam-api', 'r/cs2': 'cs2', 'r/GlobalOffensive': 'go' };
+
+  function relTime(dateStr) {
+    if (!dateStr) return '—';
+    const diff = (Date.now() - new Date(dateStr)) / 1000;
+    if (diff < 60)   return 'Hace un momento';
+    if (diff < 3600) return `Hace ${Math.floor(diff/60)} min`;
+    if (diff < 86400) return `Hace ${Math.floor(diff/3600)} h`;
+    return `Hace ${Math.floor(diff/86400)} d`;
+  }
+
+  function badge(source) {
+    const cls = SOURCE_CLASS[source] || '';
+    return `<span class="badge ${cls}">${source}</span>`;
+  }
+
+  function thumb(source, big = false) {
+    const icon = SOURCE_ICON[source] || '📰';
+    return `<div class="thumb" data-source="${source}">
+      <span class="thumb-icon">${icon}</span>
+    </div>`;
+  }
+
+  function heroCard(item) {
+    return `
+      <div class="hero" onclick="open('${item.link}','_blank')">
+        ${thumb(item.source)}
+        <div class="hero-gradient"></div>
+        <div class="hero-body">
+          <div class="hero-source-row">
+            ${badge(item.source)}
+            <span class="hero-time">${relTime(item.pubDate)}</span>
+          </div>
+          <div class="hero-title">${escHtml(item.title)}</div>
+        </div>
+      </div>`;
+  }
+
+  function newsCard(item) {
+    return `
+      <div class="card" onclick="open('${item.link}','_blank')">
+        ${thumb(item.source)}
+        <div class="card-body">
+          <div class="card-meta">${badge(item.source)}</div>
+          <div class="card-title">${escHtml(item.title)}</div>
+          <div class="card-time">${relTime(item.pubDate)}</div>
+        </div>
+      </div>`;
+  }
+
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function render(data) {
+    const items = data.items || [];
+    if (!items.length) {
+      document.getElementById('content').innerHTML =
+        `<div class="state-msg"><div class="big">📭</div>No hay noticias en cache aún.<br>El servidor puede estar iniciando.</div>`;
+      return;
+    }
+    const [hero, ...rest] = items;
+    const gridItems = rest.slice(0, 19); // up to 19 more = 20 total
+
+    document.getElementById('content').innerHTML = `
+      <p class="section-label">Destacado</p>
+      ${heroCard(hero)}
+      <p class="section-label">Últimas noticias</p>
+      <div class="grid">${gridItems.map(newsCard).join('')}</div>
+    `;
+
+    const now = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('lastUpdated').textContent =
+      `${items.length} noticias · actualizado a las ${now}`;
+  }
+
+  async function load() {
+    const btn = document.getElementById('btnRefresh');
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    try {
+      const res = await fetch('http://localhost:3000/news?limit=20');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      render(data);
+    } catch (err) {
+      document.getElementById('content').innerHTML =
+        `<div class="state-msg"><div class="big">⚠️</div>No se pudo conectar con el servidor.<br><code style="font-size:12px;color:#888">http://localhost:3000/news</code><br><br>Asegurate de que <code style="font-size:12px;color:#888">node src/index.js</code> esté corriendo.</div>`;
+    } finally {
+      btn.classList.remove('spinning');
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('btnRefresh').addEventListener('click', load);
+  load();
+</script>
+</body>
+</html>
