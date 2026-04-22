@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
@@ -11,6 +12,7 @@ const rssParser = new Parser({
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // --- sources -----------------------------------------------------------
 
